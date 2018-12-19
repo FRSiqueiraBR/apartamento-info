@@ -21,3 +21,10 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+.idea/compiler.xml
+.idea/vcs.xml
+.idea/workspace.xml
+target/generated-sources/
+
+# Aquivo com configuração do token
+/src/main/java/br/com/frsiqueira/BotConfig.java
