@@ -18,8 +18,13 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 import org.telegram.telegrambots.meta.logging.BotLogger;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 public class ApeInfoHandler extends TelegramLongPollingBot {
@@ -82,12 +87,13 @@ public class ApeInfoHandler extends TelegramLongPollingBot {
     }
 
     private static SendMessage onDaysRemainingChosen(Message message) {
+        Period period = remainingDays();
+
         SendMessage sendMessage = new SendMessage();
         sendMessage.enableMarkdown(true);
         sendMessage.setReplyToMessageId(message.getMessageId());
         sendMessage.setChatId(message.getChatId());
-        //TODO: Fazer a pesquisa de quantos dias restam
-        sendMessage.setText("Faltam x dias");
+        sendMessage.setText(generateRemainingDaysToRelease(period));
 
         return sendMessage;
     }
@@ -112,6 +118,37 @@ public class ApeInfoHandler extends TelegramLongPollingBot {
         sendMessage.setText("Opção não encontrada");
 
         return sendMessage;
+    }
+
+    private static Period remainingDays() {
+        Date releaseDate = DatabaseManager.getInstance().findReleaseDate();
+
+        LocalDate today = LocalDate.now();
+        LocalDate releaseLocalDate = Instant.ofEpochMilli(releaseDate.getTime())
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+
+        return Period.between(today, releaseLocalDate);
+    }
+
+    private static String generateRemainingDaysToRelease(Period period) {
+        int years = period.getYears();
+        int months = period.getMonths();
+        int days = period.getDays();
+
+        String message;
+
+        if (days != 0 && months != 0 && years != 0) {
+            message = "Faltam " + years + " anos, " + months + " meses e " + days + " dias";
+        } else if (days != 0 && months != 0) {
+            message = "Faltam " + months + " meses e " + days + " dias";
+        } else if (days != 0) {
+            message = "Faltam " + days + " dias";
+        } else {
+            message = "Hoje é a data de entrega!";
+        }
+
+        return message;
     }
 
     public void onUpdateReceived(Update update) {

@@ -5,6 +5,7 @@ import org.telegram.telegrambots.meta.logging.BotLogger;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Date;
 
 public class DatabaseManager {
     private static final String LOGTAG = "DATABASEMANAGER";
@@ -33,24 +34,6 @@ public class DatabaseManager {
         return currentInstance;
     }
 
-    public int getApeInfoState(Integer userId, Long chatId) {
-        int state = 0;
-
-        try {
-            final PreparedStatement preparedStatement = connection.getPreparedStatement("SELECT state FROM ApeInfoState WHERE userId = ? AND chatId = ?");
-            preparedStatement.setInt(1, userId);
-            preparedStatement.setLong(2, userId);
-            final ResultSet result = preparedStatement.executeQuery();
-            if (result.next()) {
-                state = result.getInt("state");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return state;
-    }
-
     public boolean insertApeInfoState(Integer userId, Long chatId, int state) {
         int updateRows = 0;
 
@@ -62,7 +45,7 @@ public class DatabaseManager {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-       return updateRows > 0;
+        return updateRows > 0;
     }
 
     private void recreateTables() {
@@ -81,5 +64,23 @@ public class DatabaseManager {
         } catch (SQLException e) {
             BotLogger.error(LOGTAG, e);
         }
+    }
+
+    public Date findReleaseDate() {
+        Date releaseDate = null;
+        try {
+
+            final PreparedStatement preparedStatement = connection.getPreparedStatement("SELECT * FROM APARTMENT");
+            final ResultSet result = preparedStatement.executeQuery();
+
+            if (result.next()) {
+                releaseDate = result.getDate("release_date");
+            }
+
+
+        } catch (SQLException e) {
+            BotLogger.error(LOGTAG, e);
+        }
+        return releaseDate;
     }
 }
