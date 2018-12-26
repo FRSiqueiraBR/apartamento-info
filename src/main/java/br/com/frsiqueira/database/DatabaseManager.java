@@ -1,5 +1,7 @@
 package br.com.frsiqueira.database;
 
+import org.telegram.telegrambots.meta.logging.BotLogger;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,6 +14,7 @@ public class DatabaseManager {
 
     public DatabaseManager() {
         connection = new ConnectionDB();
+        this.recreateTables();
     }
 
     public static DatabaseManager getInstance() {
@@ -60,5 +63,23 @@ public class DatabaseManager {
             e.printStackTrace();
         }
        return updateRows > 0;
+    }
+
+    private void recreateTables() {
+        try {
+            connection.initTransaction();
+
+            connection.executeQuery(CreationString.createUserTable);
+            connection.executeQuery(CreationString.createApartmentTable);
+            connection.executeQuery(CreationString.createPaymentTable);
+            connection.executeQuery(CreationString.createAlertTable);
+
+            connection.executeQuery(CreationString.insertApartmentTable);
+            connection.executeQuery(CreationString.insertPaymentTable);
+
+            connection.commitTransaction();
+        } catch (SQLException e) {
+            BotLogger.error(LOGTAG, e);
+        }
     }
 }
