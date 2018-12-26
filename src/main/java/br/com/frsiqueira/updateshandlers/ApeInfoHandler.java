@@ -29,6 +29,7 @@ public class ApeInfoHandler extends TelegramLongPollingBot {
 
     public ApeInfoHandler() {
         super();
+        DatabaseManager.getInstance();
         startAlertTimers();
     }
 
