@@ -5,6 +5,7 @@ import org.telegram.telegrambots.meta.logging.BotLogger;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Calendar;
 import java.util.Date;
 
 public class DatabaseManager {
@@ -32,20 +33,6 @@ public class DatabaseManager {
             currentInstance = instance;
         }
         return currentInstance;
-    }
-
-    public boolean insertApeInfoState(Integer userId, Long chatId, int state) {
-        int updateRows = 0;
-
-        try {
-            final PreparedStatement preparedStatement = connection.getPreparedStatement("REPLACE INTO WeatherState (userId, chatId, state) VALUES (?, ?, ?)");
-            preparedStatement.setInt(1, userId);
-            preparedStatement.setLong(2, chatId);
-            preparedStatement.setInt(3, state);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return updateRows > 0;
     }
 
     private void recreateTables() {
@@ -82,5 +69,28 @@ public class DatabaseManager {
             BotLogger.error(LOGTAG, e);
         }
         return releaseDate;
+    }
+
+    public void saveUser(Integer userId, Integer chatId, Date creationDate) {
+        try {
+            final PreparedStatement preparedStatement = connection.getPreparedStatement("REPLACE INTO USER(user_id, chat_id, create_date) VALUES (?, ?, ?)");
+            preparedStatement.setInt(1, userId);
+            preparedStatement.setInt(2, chatId);
+            preparedStatement.setDate(3, new java.sql.Date(creationDate.getTime()));
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            BotLogger.error(LOGTAG, e);
+        }
+    }
+
+    public void removeUser(Integer userId, Integer chatId) {
+        try {
+            final PreparedStatement preparedStatement = connection.getPreparedStatement("DELETE FROM USER WHERE user_id = ? and chat_id = ?");
+            preparedStatement.setInt(1, userId);
+            preparedStatement.setInt(2, chatId);
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            BotLogger.error(LOGTAG, e);
+        }
     }
 }

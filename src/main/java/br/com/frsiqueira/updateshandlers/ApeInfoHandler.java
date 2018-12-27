@@ -1,7 +1,6 @@
 package br.com.frsiqueira.updateshandlers;
 
 import br.com.frsiqueira.BotConfig;
-import br.com.frsiqueira.Commands;
 import br.com.frsiqueira.database.DatabaseManager;
 import br.com.frsiqueira.dto.ApeInfoAlert;
 import br.com.frsiqueira.services.CustomTimerTask;
@@ -214,36 +213,20 @@ public class ApeInfoHandler extends TelegramLongPollingBot {
     }
 
     private void handleIncomingMessage(Message message) throws TelegramApiException {
-        //final int state = DatabaseManager.getInstance().getApeInfoState(message.getFrom().getId(), message.getChatId());
-
-        if (!message.isUserMessage() && message.hasText()) {
-            if (isCommandForOther(message.getText())) {
-                return;
-            } else if (message.getText().startsWith(Commands.STOP)) {
-                sendHideKeyboard(message.getFrom().getId(), message.getChatId(), message.getMessageId());
-                return;
-            }
+        if (this.isStartMessage(message.getText())) {
+            DatabaseManager.getInstance().saveUser(message.getFrom().getId(), Math.toIntExact(message.getChatId()), new Date());
+        } else if (this.isStopMessage(message.getText())) {
+            DatabaseManager.getInstance().removeUser(message.getFrom().getId(), Math.toIntExact(message.getChatId()));
+        } else {
+            execute(messageOnMenu(message));
         }
-
-        SendMessage sendMessageRequest;
-
-        sendMessageRequest = messageOnMenu(message);
-
-        execute(sendMessageRequest);
     }
 
-    private void sendHideKeyboard(Integer userId, Long chatId, Integer messageId) throws TelegramApiException {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(chatId.toString());
-        sendMessage.enableMarkdown(true);
-        sendMessage.setReplyToMessageId(messageId);
-        sendMessage.setText("Colocar texto");
+    private boolean isStartMessage(String message) {
+        return "/start".equals(message);
+    }
 
-        ReplyKeyboardRemove replyKeyboardRemove = new ReplyKeyboardRemove();
-        replyKeyboardRemove.setSelective(true);
-        sendMessage.setReplyMarkup(replyKeyboardRemove);
-
-        execute(sendMessage);
-        DatabaseManager.getInstance().insertApeInfoState(userId, chatId, STARTSTATE);
+    private boolean isStopMessage(String message) {
+        return "/stop".equals(message);
     }
 }
