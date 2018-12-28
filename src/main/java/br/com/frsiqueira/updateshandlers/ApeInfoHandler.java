@@ -1,6 +1,7 @@
 package br.com.frsiqueira.updateshandlers;
 
 import br.com.frsiqueira.BotConfig;
+import br.com.frsiqueira.Commands;
 import br.com.frsiqueira.database.DatabaseManager;
 import br.com.frsiqueira.dto.ApeInfoAlert;
 import br.com.frsiqueira.services.CustomTimerTask;
@@ -9,9 +10,7 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
@@ -29,94 +28,10 @@ import java.util.List;
 public class ApeInfoHandler extends TelegramLongPollingBot {
     private static final String LOGTAG = "APEINFOHANDLER";
 
-    private static final int STARTSTATE = 0;
-
     public ApeInfoHandler() {
         super();
-        DatabaseManager.getInstance();
+        getMainMenuKeyboard();
         startAlertTimers();
-    }
-
-    private static boolean isCommandForOther(String text) {
-        boolean isSimpleCommand = text.equals("/start") || text.equals("/help") || text.equals("/stop");
-        boolean isCommandForMe = text.equals("/start@nomebot") || text.equals("/help@nomebot") || text.equals("/stop@nomebot");
-        return text.startsWith("/") && !isSimpleCommand && !isCommandForMe;
-    }
-
-    private static SendMessage messageOnMenu(Message message) {
-        SendMessage sendMessage;
-
-        if (message.hasText()) {
-            if (message.getText().equals(getDaysRemainingCommand())) {
-                sendMessage = onDaysRemainingChosen(message);
-            } else if (message.getText().equals(getAlertPaymentCommand())) {
-                sendMessage = onAlertPaymentChosen(message);
-            } else {
-                sendMessage = sendChooseOptionMessage(message.getChatId(), message.getMessageId(), getMainMenuKeyboard());
-            }
-        } else {
-            sendMessage = sendChooseOptionMessage(message.getChatId(), message.getMessageId(), getMainMenuKeyboard());
-        }
-
-        return sendMessage;
-    }
-
-    private static String getDaysRemainingCommand() {
-        return "Dias Restantes";
-    }
-
-    private static String getAlertPaymentCommand() {
-        return "Me avise quando tenho que pagar";
-    }
-
-    private static ReplyKeyboardMarkup getMainMenuKeyboard() {
-        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
-        replyKeyboardMarkup.setSelective(true);
-        replyKeyboardMarkup.setResizeKeyboard(true);
-        replyKeyboardMarkup.setOneTimeKeyboard(false);
-
-        List<KeyboardRow> keyboard = new ArrayList<>();
-        KeyboardRow keyboardFirstRow = new KeyboardRow();
-        keyboardFirstRow.add(getDaysRemainingCommand());
-        keyboardFirstRow.add(getAlertPaymentCommand());
-        keyboard.add(keyboardFirstRow);
-        replyKeyboardMarkup.setKeyboard(keyboard);
-
-        return replyKeyboardMarkup;
-    }
-
-    private static SendMessage onDaysRemainingChosen(Message message) {
-        Period period = remainingDays();
-
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.enableMarkdown(true);
-        sendMessage.setReplyToMessageId(message.getMessageId());
-        sendMessage.setChatId(message.getChatId());
-        sendMessage.setText(generateRemainingDaysToRelease(period));
-
-        return sendMessage;
-    }
-
-    private static SendMessage onAlertPaymentChosen(Message message) {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.enableMarkdown(true);
-        sendMessage.setReplyToMessageId(message.getMessageId());
-        sendMessage.setChatId(message.getChatId());
-        //TODO: fazer a pesquisa da data de pagamento
-        sendMessage.setText("O pagamento deverá ser feito no dia x");
-
-        return sendMessage;
-    }
-
-    private static SendMessage sendChooseOptionMessage(Long chatId, Integer messageId, ReplyKeyboard replyKeyboard) {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.enableMarkdown(true);
-        sendMessage.setChatId(chatId.toString());
-        sendMessage.setReplyToMessageId(messageId);
-        sendMessage.setReplyMarkup(replyKeyboard);
-        sendMessage.setText("Opção não encontrada");
-
-        return sendMessage;
     }
 
     private static Period remainingDays() {
@@ -148,6 +63,87 @@ public class ApeInfoHandler extends TelegramLongPollingBot {
         }
 
         return message;
+    }
+
+    private static SendMessage onStartChosen(Message message) {
+        try {
+            Integer userId = message.getFrom().getId();
+            Long chatId = message.getChatId();
+            Date now = new Date();
+
+            DatabaseManager
+                    .getInstance()
+                    .saveUser(userId, chatId, now);
+
+        } catch (Exception e) {
+            BotLogger.error(LOGTAG, e);
+        }
+
+        return new SendMessage()
+                .enableMarkdown(true)
+                .setReplyToMessageId(message.getMessageId())
+                .setChatId(message.getChatId())
+                .setReplyMarkup(getMainMenuKeyboard())
+                .setText("Seja bem vindo ao bot de informações do apartamento");
+    }
+
+    private static void onStopChosen(Message message) {
+        try {
+            Integer userId = message.getFrom().getId();
+            Long chatId = message.getChatId();
+
+            DatabaseManager
+                    .getInstance()
+                    .removeUser(userId, chatId);
+        } catch (Exception e) {
+            BotLogger.error(LOGTAG, e);
+        }
+    }
+
+    private static SendMessage onDaysRemainingChosen(Message message) {
+        Period period = remainingDays();
+
+        return new SendMessage()
+                .enableMarkdown(true)
+                .setReplyToMessageId(message.getMessageId())
+                .setChatId(message.getChatId())
+                .setReplyMarkup(getMainMenuKeyboard())
+                .setText(generateRemainingDaysToRelease(period));
+    }
+
+    //TODO: fazer a pesquisa da data de pagamento
+    private static SendMessage onAlertPaymentChosen(Message message) {
+        return new SendMessage()
+                .enableMarkdown(true)
+                .setReplyToMessageId(message.getMessageId())
+                .setChatId(message.getChatId())
+                .setReplyMarkup(getMainMenuKeyboard())
+                .setText("O pagamento deverá ser feito no dia x");
+    }
+
+    private static SendMessage onUnknownOptionChosen(Message message) {
+        return new SendMessage()
+                .enableMarkdown(true)
+                .setReplyToMessageId(message.getMessageId())
+                .setChatId(message.getChatId())
+                .setReplyMarkup(getMainMenuKeyboard())
+                .setText("Desculpe, opção não encontrada");
+    }
+
+    private static ReplyKeyboardMarkup getMainMenuKeyboard() {
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        replyKeyboardMarkup.setSelective(true);
+        replyKeyboardMarkup.setResizeKeyboard(true);
+        replyKeyboardMarkup.setOneTimeKeyboard(false);
+
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        KeyboardRow keyboardFirstRow = new KeyboardRow();
+        keyboardFirstRow.add(Commands.DAYS_REMAINING);
+        keyboardFirstRow.add(Commands.ALERT);
+        keyboard.add(keyboardFirstRow);
+        replyKeyboardMarkup.setKeyboard(keyboard);
+
+        return replyKeyboardMarkup;
     }
 
     public void onUpdateReceived(Update update) {
@@ -214,19 +210,31 @@ public class ApeInfoHandler extends TelegramLongPollingBot {
 
     private void handleIncomingMessage(Message message) throws TelegramApiException {
         if (this.isStartMessage(message.getText())) {
-            DatabaseManager.getInstance().saveUser(message.getFrom().getId(), Math.toIntExact(message.getChatId()), new Date());
+            execute(onStartChosen(message));
         } else if (this.isStopMessage(message.getText())) {
-            DatabaseManager.getInstance().removeUser(message.getFrom().getId(), Math.toIntExact(message.getChatId()));
+            onStopChosen(message);
+        } else if (this.isDaysRemainingMessage(message.getText())) {
+            execute(onDaysRemainingChosen(message));
+        } else if (this.isAlertPaymentMessage(message.getText())) {
+            execute(onAlertPaymentChosen(message));
         } else {
-            execute(messageOnMenu(message));
+            execute(onUnknownOptionChosen(message));
         }
     }
 
     private boolean isStartMessage(String message) {
-        return "/start".equals(message);
+        return Commands.START.equals(message);
     }
 
     private boolean isStopMessage(String message) {
-        return "/stop".equals(message);
+        return Commands.STOP.equals(message);
+    }
+
+    private boolean isDaysRemainingMessage(String message) {
+        return Commands.DAYS_REMAINING.equals(message);
+    }
+
+    private boolean isAlertPaymentMessage(String message) {
+        return Commands.ALERT.equals(message);
     }
 }

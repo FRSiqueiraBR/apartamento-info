@@ -71,11 +71,11 @@ public class DatabaseManager {
         return releaseDate;
     }
 
-    public void saveUser(Integer userId, Integer chatId, Date creationDate) {
+    public void saveUser(Integer userId, Long chatId, Date creationDate) {
         try {
             final PreparedStatement preparedStatement = connection.getPreparedStatement("REPLACE INTO USER(user_id, chat_id, create_date) VALUES (?, ?, ?)");
             preparedStatement.setInt(1, userId);
-            preparedStatement.setInt(2, chatId);
+            preparedStatement.setLong(2, chatId);
             preparedStatement.setDate(3, new java.sql.Date(creationDate.getTime()));
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
@@ -83,11 +83,11 @@ public class DatabaseManager {
         }
     }
 
-    public void removeUser(Integer userId, Integer chatId) {
+    public void removeUser(Integer userId, Long chatId) {
         try {
             final PreparedStatement preparedStatement = connection.getPreparedStatement("DELETE FROM USER WHERE user_id = ? and chat_id = ?");
             preparedStatement.setInt(1, userId);
-            preparedStatement.setInt(2, chatId);
+            preparedStatement.setLong(2, chatId);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             BotLogger.error(LOGTAG, e);
