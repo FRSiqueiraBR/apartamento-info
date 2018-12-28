@@ -4,6 +4,7 @@ import br.com.frsiqueira.BotConfig;
 import br.com.frsiqueira.Commands;
 import br.com.frsiqueira.database.DatabaseManager;
 import br.com.frsiqueira.dto.ApeInfoAlert;
+import br.com.frsiqueira.dto.Payment;
 import br.com.frsiqueira.services.CustomTimerTask;
 import br.com.frsiqueira.services.TimerExecutor;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -16,21 +17,22 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 import org.telegram.telegrambots.meta.logging.BotLogger;
 
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class ApeInfoHandler extends TelegramLongPollingBot {
     private static final String LOGTAG = "APEINFOHANDLER";
 
+    private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
+
     public ApeInfoHandler() {
         super();
         getMainMenuKeyboard();
+        DatabaseManager.getInstance();
         startAlertTimers();
     }
 
@@ -111,14 +113,23 @@ public class ApeInfoHandler extends TelegramLongPollingBot {
                 .setText(generateRemainingDaysToRelease(period));
     }
 
-    //TODO: fazer a pesquisa da data de pagamento
     private static SendMessage onAlertPaymentChosen(Message message) {
+        Optional<Payment> nextPayment =
+                DatabaseManager.getInstance().findPayments()
+                        .stream()
+                        .filter(payment -> !payment.isPaid())
+                        .findFirst();
+
+        String nextPaymentMessage = nextPayment.map(ApeInfoHandler::nextPaymentMessage).orElse(noParcelsToPay());
+
+
+
         return new SendMessage()
                 .enableMarkdown(true)
                 .setReplyToMessageId(message.getMessageId())
                 .setChatId(message.getChatId())
                 .setReplyMarkup(getMainMenuKeyboard())
-                .setText("O pagamento deverá ser feito no dia x");
+                .setText(nextPaymentMessage);
     }
 
     private static SendMessage onUnknownOptionChosen(Message message) {
@@ -144,6 +155,14 @@ public class ApeInfoHandler extends TelegramLongPollingBot {
         replyKeyboardMarkup.setKeyboard(keyboard);
 
         return replyKeyboardMarkup;
+    }
+
+    private static String nextPaymentMessage(Payment payment) {
+        return "O pagamento da parcela " + payment.getParcel() + " deverá ser paga no dia " + simpleDateFormat.format(payment.getDate());
+    }
+
+    private static String noParcelsToPay() {
+        return "Não existem mais parcelas pra serem pagas";
     }
 
     public void onUpdateReceived(Update update) {
