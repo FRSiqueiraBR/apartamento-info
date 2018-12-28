@@ -79,13 +79,12 @@ public class ApeInfoHandler extends TelegramLongPollingBot {
             BotLogger.error(LOGTAG, e);
         }
 
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.enableMarkdown(true);
-        sendMessage.setReplyToMessageId(message.getMessageId());
-        sendMessage.setChatId(message.getChatId());
-        sendMessage.setText("Seja bem vindo ao bot de informações do apartamento");
-
-        return sendMessage;
+        return new SendMessage()
+                .enableMarkdown(true)
+                .setReplyToMessageId(message.getMessageId())
+                .setChatId(message.getChatId())
+                .setReplyMarkup(getMainMenuKeyboard())
+                .setText("Seja bem vindo ao bot de informações do apartamento");
     }
 
     private static void onStopChosen(Message message) {
@@ -104,13 +103,12 @@ public class ApeInfoHandler extends TelegramLongPollingBot {
     private static SendMessage onDaysRemainingChosen(Message message) {
         Period period = remainingDays();
 
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.enableMarkdown(true);
-        sendMessage.setReplyToMessageId(message.getMessageId());
-        sendMessage.setChatId(message.getChatId());
-        sendMessage.setText(generateRemainingDaysToRelease(period));
-
-        return sendMessage;
+        return new SendMessage()
+                .enableMarkdown(true)
+                .setReplyToMessageId(message.getMessageId())
+                .setChatId(message.getChatId())
+                .setReplyMarkup(getMainMenuKeyboard())
+                .setText(generateRemainingDaysToRelease(period));
     }
 
     //TODO: fazer a pesquisa da data de pagamento
@@ -119,6 +117,7 @@ public class ApeInfoHandler extends TelegramLongPollingBot {
                 .enableMarkdown(true)
                 .setReplyToMessageId(message.getMessageId())
                 .setChatId(message.getChatId())
+                .setReplyMarkup(getMainMenuKeyboard())
                 .setText("O pagamento deverá ser feito no dia x");
     }
 
@@ -127,6 +126,7 @@ public class ApeInfoHandler extends TelegramLongPollingBot {
                 .enableMarkdown(true)
                 .setReplyToMessageId(message.getMessageId())
                 .setChatId(message.getChatId())
+                .setReplyMarkup(getMainMenuKeyboard())
                 .setText("Desculpe, opção não encontrada");
     }
 
